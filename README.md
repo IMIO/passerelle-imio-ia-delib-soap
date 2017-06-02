@@ -1,5 +1,5 @@
-Passerelle connector to Liege Lisrue service
-============================================
+A SOAP PASSERELLE [entrouvert] plugins to communicate with IMIO IA DELIB.
+=========================================================================
 
 Installation
 ------------
