@@ -1,0 +1,7 @@
+/MANIFEST
+*.pyc
+/dist
+/build
+/passerelle_imio_ia_delib.egg-info
+django.mo
+sed.sh
