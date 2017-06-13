@@ -18,5 +18,9 @@ TEST
   <li>{% trans 'Check Connection with IA Delib:' %}
     <p>{{ is_connected }}</p>
   </li>
+  {% url 'generic-endpoint' connector='iimioiadelib' slug=object.slug endpoint='getItemInfos' as get_infos %}
+  <li>{% trans 'Get informations about a point (uid in params)' %}
+    <p>{{ get_infos }}</p>
+  </li>
 </ul>
 {% endblock %}

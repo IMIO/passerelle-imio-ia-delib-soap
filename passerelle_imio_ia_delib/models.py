@@ -20,6 +20,9 @@
 # https://demo-pm.imio.be/
 # http://trac.imio.be/trac/browser/communesplone/imio.pm.wsclient/trunk/src/imio/pm/wsclient/browser/settings.py#L211
 # http://svn.communesplone.org/svn/communesplone/imio.pm.ws/trunk/docs/README.txt
+
+# Decorateurs des endpoints:
+# serializer_type='json-api' : Permet de serializer la reponse directement dans un data + format automatique pour un raise exception.
 import base64
 import json
 import magic
@@ -63,19 +66,6 @@ class FileNotFoundError(Exception):
     http_status = 404
 
 
-class PayloadInterceptor(suds.plugin.MessagePlugin):
-    def __init__(self, *args, **kwargs):
-        self.last_payload = None
-
-    def received(self, context):
-        #recieved xml as a string
-        print "%s bytes received" % len(context.reply)
-        self.last_payload = context.reply
-        #clean up reply to prevent parsing
-        context.reply = ""
-        return context
-
-
 class IImioIaDelib(BaseResource):
     wsdl_url = models.CharField(max_length=128, blank=False,
             verbose_name=_('WSDL URL'),
@@ -106,8 +96,6 @@ class IImioIaDelib(BaseResource):
     @endpoint(serializer_type='json-api', perm='can_access')
     def testConnection(self, request):
         client = get_client(self)
-        # payload_interceptor = PayloadInterceptor()
-        # client.options.plugins = [payload_interceptor]
         return dict(client.service.testConnection(''))
 
     @endpoint(serializer_type='json-api', perm='can_access')
@@ -118,9 +106,35 @@ class IImioIaDelib(BaseResource):
                                   'description': 'My new item description',
                                   'decision': 'My decision'}))
 
-    #createItem?meetingConfigId=meeting-config-college&proposingGroupId=dirgen&title=Mon%20nouveau%20point&description=Ma%20nouvelle%20description&decision=Ma%20nouvelle%20decision
-    @endpoint(serializer_type='json-api', perm='can_access')
-    def createItem(self, request, meetingConfigId, proposingGroupId, title, description,decision):
+    # uid="uidplone", showExtraInfos="1", showAnnexes="0", showTemplates="0"
+    @endpoint(serializer_type='json-api', perm='can_access', methods=['post','get'])
+    def getItemInfos(self, request, *args, **kwargs):
+        id_delib_extraInfos = {}
+        if request.body:
+            load = json.loads(request.body)
+            ws_params = load['extra']
+            uid = ws_params['uid']
+            showExtraInfos = ws_params['showExtraInfos'] or "1"
+            showAnnexes = ws_params['showAnnexes'] or "0"
+            showTemplates = ws_params['showTemplates'] or "0"
+        else:
+            get = request.GET
+            uid = "uid" in get and get["uid"]
+            showExtraInfos = "showExtraInfos" in get and get["showExtraInfos"] or "1" 
+            showAnnexes = "showAnnexes" in get and get["showAnnexes"] or "0"
+            showTemplates = "showTemplates" in get and get["showTemplates"] or "0"
+        client = get_client(self)
+        ia_delib_point_all_informations =  client.service.getItemInfos(uid,
+                                           showExtraInfos,
+                                           showAnnexes,
+                                           showTemplates)
+        ia_delib_extraInfos = len(ia_delib_point_all_informations) > 0 and ia_delib_point_all_informations[0]['extraInfos']
+        if not ia_delib_extraInfos:
+           raise Exception("Don't find UID IA Delib point")
+        return dict(ia_delib_extraInfos)
+    
+    @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
+    def createItem_OLD(self, request, meetingConfigId, proposingGroupId, title, description,decision):
         creationData ={'title':title,
                        'description':description,
                        'decision':decision
@@ -129,3 +143,33 @@ class IImioIaDelib(BaseResource):
         return dict(client.service.createItem(meetingConfigId,
                                               proposingGroupId,
                                               creationData))
+    
+    @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
+    def createItem(self, request, *args, **kwargs):
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        if request.body:
+            load = json.loads(request.body)
+            # get fields from form.
+            data.update(load.get("fields"))
+            ws_params = load['extra']
+        if 'extraAttrs' in ws_params:
+            # pass all extraAttrs in a unqiue "extraAttrs" parameter list of dictionary : 
+            # [{'key': 'detailedDescription', 'value' : 'lala'},{'key': 'internalNotes', 'value' : 'notes'}] in workflow
+            extraAttrs = [dict((k.encode('utf8'), v.encode('utf8')) for k, v in ws_params['extraAttrs'][0].items())]
+        else:
+            # pass differents extraAttrs in different parameter like :  
+            # detailedDescription = "lala" 
+            # internalNotes = "notes" 
+            detailedDescription = "detailedDescription" in ws_params and "<p>{}</p>".format(ws_params['detailedDescription']) or "<p></p>"
+            extraAttrs = [{'key':'detailedDescription','value':detailedDescription}]
+        
+        creationData ={'title':ws_params['title'],
+                       'description':ws_params['description'],
+                       'decision':ws_params['decision'],
+                       'extraAttrs':extraAttrs
+                      }
+        client = get_client(self)
+        new_point = dict(client.service.createItem(ws_params['meetingConfigId'],
+                                              ws_params['proposingGroupId'],
+                                              creationData))
+        return new_point
