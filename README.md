@@ -1,5 +1,5 @@
-Passerelle connector to Liege Lisrue service
-============================================
+Passerelle connector to communicate with IADELIB
+================================================
 
 Installation
 ------------
