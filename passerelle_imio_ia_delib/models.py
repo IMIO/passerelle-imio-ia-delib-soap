@@ -124,14 +124,19 @@ class IImioIaDelib(BaseResource):
             showAnnexes = "showAnnexes" in get and get["showAnnexes"] or "0"
             showTemplates = "showTemplates" in get and get["showTemplates"] or "0"
         client = get_client(self)
-        ia_delib_point_all_informations =  client.service.getItemInfos(uid,
+        try:
+            ia_delib_raw = client.service.getItemInfos(uid,
                                            showExtraInfos,
                                            showAnnexes,
                                            showTemplates)
-        ia_delib_extraInfos = len(ia_delib_point_all_informations) > 0 and ia_delib_point_all_informations[0]['extraInfos']
-        if not ia_delib_extraInfos:
-           raise Exception("Don't find UID IA Delib point")
-        return dict(ia_delib_extraInfos)
+        except:
+            raise Exception("Don't find UID IA Delib point ?")
+        ia_delib_infos = dict((k, v.encode('utf8') if hasattr(v, 'encode') else v) for (k, v) in ia_delib_raw[0]
+                                           if k not in ['extraInfos'])
+        ia_delib_extraInfos = dict((k, v.encode('utf8') if hasattr(v, 'encode') else v) for (k, v) in ia_delib_raw[0]['extraInfos'])
+
+        ia_delib_infos.update(ia_delib_extraInfos)
+        return ia_delib_infos
     
     @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
     def createItem_OLD(self, request, meetingConfigId, proposingGroupId, title, description,decision):
@@ -147,29 +152,24 @@ class IImioIaDelib(BaseResource):
     @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
     def createItem(self, request, *args, **kwargs):
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        extraAttrs = {}
         if request.body:
             load = json.loads(request.body)
             # get fields from form.
             data.update(load.get("fields"))
             ws_params = load['extra']
-        if 'extraAttrs' in ws_params:
-            # pass all extraAttrs in a unqiue "extraAttrs" parameter list of dictionary : 
-            # [{'key': 'detailedDescription', 'value' : 'lala'},{'key': 'internalNotes', 'value' : 'notes'}] in workflow
-            extraAttrs = [dict((k.encode('utf8'), v.encode('utf8')) for k, v in ws_params['extraAttrs'][0].items())]
-        else:
-            # pass differents extraAttrs in different parameter like :  
-            # detailedDescription = "lala" 
-            # internalNotes = "notes" 
-            detailedDescription = "detailedDescription" in ws_params and "<p>{}</p>".format(ws_params['detailedDescription']) or "<p></p>"
-            extraAttrs = [{'key':'detailedDescription','value':detailedDescription}]
-        
-        creationData ={'title':ws_params['title'],
-                       'description':ws_params['description'],
-                       'decision':ws_params['decision'],
-                       'extraAttrs':extraAttrs
-                      }
-        client = get_client(self)
-        new_point = dict(client.service.createItem(ws_params['meetingConfigId'],
+            # if 'extraAttrs' in ws_params:
+            #else:
+            creationData ={'title':ws_params['title'],
+                           'description':ws_params['description'],
+                           'detailedDescription':ws_params['detailedDescription'],
+                           'decision':ws_params['decision'],
+                           'extraAttrs':extraAttrs
+                          }
+            client = get_client(self)
+            new_point = dict(client.service.createItem(ws_params['meetingConfigId'],
                                               ws_params['proposingGroupId'],
                                               creationData))
-        return new_point
+            return new_point
+        else:
+            raise ValueError('createItem : request body!')
