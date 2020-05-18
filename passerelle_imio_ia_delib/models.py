@@ -28,6 +28,7 @@ import json
 import magic
 import suds
 
+from builtins import str
 from requests.exceptions import ConnectionError
 from django.db import models
 from django.core.urlresolvers import reverse
@@ -51,7 +52,7 @@ def get_client(model):
 
 
 def format_type(t):
-    return {'id': unicode(t), 'text': unicode(t)}
+    return {'id': str(t), 'text': str(t)}
 
 
 def format_file(f):

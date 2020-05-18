@@ -71,7 +71,7 @@ class Transport(HttpAuthenticated):
             return HttpAuthenticated.open(self, request)
         resp = self.model.requests.get(request.url, headers=request.headers,
                 **self.get_requests_kwargs())
-        return StringIO.StringIO(resp.content)
+        return StringIO(resp.content)
 
     def send(self, request):
         request.message = request.message.replace("contentType", "xm:contentType")
