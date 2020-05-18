@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import glob
@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 
+from io import open
 from setuptools.command.install_lib import install_lib as _install_lib
 from distutils.command.build import build as _build
 from distutils.command.sdist import sdist
@@ -42,7 +43,7 @@ def get_version():
 
 
 class compile_translations(Command):
-    description = 'compile message catalogs to MO files via django compilemessages'
+    description = u'compile message catalogs to MO files via django compilemessages'
     user_options = []
 
     def initialize_options(self):
@@ -92,6 +93,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3.5.3',
     ],
     install_requires=['django>=1.7, <1.8',
         ],

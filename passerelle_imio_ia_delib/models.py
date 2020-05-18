@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # passerelle-imio-ia-delib - passerelle connector to IA DELIB IMIO PRODUCTS.
 # Copyright (C) 2016  Entr'ouvert
@@ -172,4 +172,4 @@ class IImioIaDelib(BaseResource):
                                               creationData))
             return new_point
         else:
-            raise ValueError('createItem : request body!')
+            raise ValueError("createItem : request body!")

@@ -1,3 +1,6 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 # Passerelle - uniform access to data and services
 # Copyright (C) 2015  Entr'ouvert
 #
@@ -19,8 +22,8 @@
 
 
 import requests
-import StringIO
 
+from io import StringIO
 from suds.client import Client
 from suds.transport.http import HttpAuthenticated
 from suds.transport import Reply
