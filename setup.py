@@ -1,18 +1,16 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import glob
 import os
-import re
 import subprocess
 import sys
 
-from io import open
 from setuptools.command.install_lib import install_lib as _install_lib
 from distutils.command.build import build as _build
 from distutils.command.sdist import sdist
 from distutils.cmd import Command
 from setuptools import setup, find_packages
+
 
 class eo_sdist(sdist):
     def run(self):
@@ -26,24 +24,35 @@ class eo_sdist(sdist):
         if os.path.exists('VERSION'):
             os.remove('VERSION')
 
+
 def get_version():
+    '''Use the VERSION, if absent generates a version with git describe, if not
+       tag exists, take 0.0- and add the length of the commit log.
+    '''
     if os.path.exists('VERSION'):
-        version_file = open('VERSION', 'r')
-        version = version_file.read()
-        version_file.close()
-        return version
+        with open('VERSION', 'r') as v:
+            return v.read()
     if os.path.exists('.git'):
-        p = subprocess.Popen(['git', 'describe', '--dirty', '--match=v*'], stdout=subprocess.PIPE)
+        p = subprocess.Popen(['git', 'describe', '--dirty=.dirty', '--match=v*'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         result = p.communicate()[0]
         if p.returncode == 0:
-            version = result.split()[0][1:]
-            version = version.replace('-', '.')
+            result = result.decode('ascii').strip()[1:]  # strip spaces/newlines and initial v
+            if '-' in result:  # not a tagged version
+                real_number, commit_count, commit_hash = result.split('-', 2)
+                version = '%s.post%s+%s' % (real_number, commit_count, commit_hash)
+            else:
+                version = result
             return version
-    return '0'
+        else:
+            return '0.0.post%s' % len(
+                    subprocess.check_output(
+                            ['git', 'rev-list', 'HEAD']).splitlines())
+    return '0.0'
 
 
 class compile_translations(Command):
-    description = u'compile message catalogs to MO files via django compilemessages'
+    description = 'compile message catalogs to MO files via django compilemessages'
     user_options = []
 
     def initialize_options(self):
