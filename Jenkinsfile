@@ -19,7 +19,7 @@ pipeline {
         always {
             script {
                 utils = new Utils()
-                utils.mail_notify(currentBuild, env, 'admin+jenkins-passerelle-imio-ia-delib@entrouvert.com')
+                utils.mail_notify(currentBuild, env, 'ci+jenkins-passerelle-imio-ia-delib@entrouvert.com')
             }
         }
         success {
